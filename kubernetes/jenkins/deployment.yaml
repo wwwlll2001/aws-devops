@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins
+  namespace: devops
+  labels:
+    app: jenkins
+spec:
+  selector:
+    matchLabels:
+      app: jenkins
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: jenkins
+    spec:
+      securityContext:
+        fsGroup: 2000
+      tolerations:
+        - key: "containerRuntimeVersion"
+          operator: "Exists"
+          effect: "NoSchedule"
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+      serviceAccountName: jenkins-admin
+#      affinity:
+#        nodeAffinity:
+#          requiredDuringSchedulingIgnoredDuringExecution:
+#            nodeSelectorTerms:
+#              - matchExpressions:
+#                  - key: apps.k8s.icjl/devops
+#                    operator: Exists
+      containers:
+        - name: jenkins
+          image: jenkins/jenkins:lts-centos
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: jenkins-home
+              mountPath: /var/jenkins_home
+              readOnly: false
+          ports:
+            - containerPort: 8080
+            - containerPort: 50000
+      volumes:
+        - name: jenkins-home
+          persistentVolumeClaim:
+            claimName: jenkins-home-pvc
